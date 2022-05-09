@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <title>Customer Manager Spring Boot</title>
+</head>
+<body>
+<div>
+    <center>
+        <h3>Create customer</h3>
+        <fieldset>
+            <form>
+                <label for="nameCustomer">Name: </label><input type="text" id="nameCustomer">
+                <label for="emailCustomer">Email: </label><input type="text" id="emailCustomer">
+                <label for="imageCustomer">Image: </label><input type="file" id="imageCustomer">
+                <label for="provinceCustomer">Province</label>
+                <select  id="provinceCustomer">
+
+                </select>
+                <input type="submit" value="Save" onclick="createCustomer()">
+            </form>
+        </fieldset>
+        <h3>List customer</h3>
+        <fieldset style="width: 100%">
+            <table border="1px" style="width: 80%">
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Image</th>
+                    <th>Province</th>
+                    <th colspan="2">Action</th>
+                </tr>
+                <tbody id="listCustomer">
+
+                </tbody>
+            </table>
+        </fieldset>
+    </center>
+</div>
+<div class="modal fade" id="edit_modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" >Edit product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label >Name</label>
+                    <input class="form-control" id="editName"
+                           type="text">
+                </div>
+            </div>
+            <div class="modal-footer" id="edit_footer">
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    function showEditForm (id) {
+        let footer = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="editCustomer(${id})">Save</button>`
+        $(`#edit_footer`).html(footer);
+        $.ajax({
+            type: "GET",
+            url: `http://localhost:8080/customers/${id}`,
+            success: function (customer) {
+                $(`#editName`).val(customer.name);
+            }
+        })
+    }
+
+    function editCustomer(id) {
+        let name = $(`#editName`).val();
+        let customerForm = new FormData();
+        customerForm.append('name', name);
+        $.ajax({
+            type: "POST",
+            url: `http://localhost:8080/customers/edit/${id}`,
+            enctype: "multipart/from-data",
+            data: customerForm,
+            processData: false,
+            contentType: false,
+            success: function () {
+                showListCustomer();
+            }
+        })
+    }
+
+    function deleteCustomer(element){
+        let customerId = element.getAttribute("href");
+        if (confirm("Yes") === true) {
+            $.ajax({
+                type: "DELETE",
+                url: `http://localhost:8080/customers/${customerId}`,
+                success: function () {
+                    showListCustomer();
+                }
+            })
+            event.preventDefault();
+        } else{
+            window.location="http://localhost:8080/customers/list";
+        }
+    }
+
+
+    function createCustomer() {
+        let name = $(`#nameCustomer`).val();
+        let customerForm = new FormData();
+        customerForm.append('name', name);
+        $.ajax({
+            type: "POST",
+            url: `http://localhost:8080/customers`,
+            data: customerForm,
+            enctype: "multipart/form-data",
+            processData: false,
+            contentType: false,
+            success: function () {
+                $(`#nameCustomer`).val("")
+                showListCustomer();
+            }
+        })
+        event.preventDefault();
+    }
+
+    function showListCustomer() {
+        $.ajax({
+            type: "GET",
+            url: "http://localhost:8080/customers",
+            success: function (customers) {
+                let content = ""
+                for (let i = 0; i < customers.length; i++) {
+                    content += `<tr>
+                    <td>${customers[i].id}</td>
+                    <td>${customers[i].name}</td>
+                    <td>${customers[i].email}</td>
+                    <td><img src="${customers[i].image}"></td>
+                    <td>${customers[i].province.name}</td>
+                    <td><button data-bs-toggle="modal" data-bs-target="#edit_modal" onclick="showEditForm(${customers[i].id})">Edit</button></td>
+                    <td><a href="${customers[i].id}" onclick="deleteCustomer(this)"><button>Delete</button></a></td>
+                </tr>`
+
+                }
+                document.getElementById("listCustomer").innerHTML = content;
+            }
+        })
+    }
+    showListCustomer();
+
+    function getProvince() {
+        $.ajax({
+            type: "GET",
+            url: `http://localhost:8080/customers/provinces`,
+            success: function (provinces) {
+                let result = "";
+                for (let i = 0; i < provinces.length; i++) {
+                    result+=`<option value="${provinces[i].id}">${provinces[i].name}</option>`
+                }
+                document.getElementById("provinceCustomer").innerHTML = result;
+            }
+        })
+    }
+    getProvince();
+</script>
+</html>
